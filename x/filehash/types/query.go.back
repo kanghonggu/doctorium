@@ -1,0 +1,19 @@
+package types
+
+import (
+    "github.com/cosmos/cosmos-sdk/types/query"
+)
+
+type QueryFileListRequest struct {
+    Pagination *query.PageRequest `json:"pagination"`
+}
+
+type QueryFileListResponse struct {
+    Files      []FileData       `json:"files"`
+    Pagination *query.PageResponse `json:"pagination"`
+}
+
+type FileData struct {
+    Creator  string `json:"creator"`
+    FileHash string `json:"file_hash"`
+}

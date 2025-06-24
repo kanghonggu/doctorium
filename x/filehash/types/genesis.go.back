@@ -1,0 +1,16 @@
+package types
+
+// GenesisState defines the filehash module's genesis state.
+type GenesisState struct {
+	Files []FileData `json:"files"`
+}
+
+// DefaultGenesis returns the default genesis state
+func DefaultGenesis() *GenesisState {
+	return &GenesisState{Files: []FileData{}}
+}
+
+// ValidateGenesis checks that the genesis state is valid
+func ValidateGenesis(data *GenesisState) error {
+	return nil
+}

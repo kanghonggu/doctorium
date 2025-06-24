@@ -1,0 +1,55 @@
+syntax = "proto3";
+package doctorium.filehash;
+
+option go_package = "doctorium/x/filehash/types";
+
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "cosmos/tx/v1beta1/service.proto";
+import "google/api/annotations.proto";
+
+// Msg service for file upload and reward
+service Msg {
+  rpc UploadFile (MsgUploadFile) returns (MsgUploadFileResponse) {
+    option (google.api.http) = {
+      post: "/doctorium/filehash/v1/UploadFile"
+      body: "*"
+    };
+  }
+}
+
+message MsgUploadFile {
+  string creator   = 1;
+  string file_hash = 2;
+}
+
+message MsgUploadFileResponse {
+  bool success = 1;
+}
+
+// Query service for checking file existence
+service Query {
+  rpc FileList (QueryFileListRequest) returns (QueryFileListResponse) {
+    option (google.api.http) = {
+      get: "/doctorium/filehash/v1/FileList"
+    };
+  }
+}
+
+message QueryFileListRequest {
+  cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+message QueryFileListResponse {
+  repeated FileData files      = 1;
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+message FileData {
+  string creator   = 1;
+  string file_hash = 2;
+}
+
+
+message GenesisState {
+  repeated FileData files = 1;
+}

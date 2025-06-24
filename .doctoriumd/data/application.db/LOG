@@ -1,0 +1,6 @@
+=============== Jun 24, 2025 (KST) ===============
+14:16:15.276986 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+14:16:15.295526 db@open opening
+14:16:15.296026 version@stat F·[] S·0B[] Sc·[]
+14:16:15.301680 db@janitor F·2 G·0
+14:16:15.301710 db@open done T·6.165959ms

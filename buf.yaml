@@ -1,0 +1,14 @@
+version: v1
+name: buf.build/yourorg/doctorium
+
+deps:
+  - buf.build/cosmos/cosmos-sdk
+  - buf.build/googleapis/googleapis
+
+lint:
+  use:
+    - DEFAULT
+
+breaking:
+  use:
+    - FILE
