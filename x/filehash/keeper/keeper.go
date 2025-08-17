@@ -76,9 +76,13 @@ func (k Keeper) UploadFile(goCtx context.Context, msg *types.MsgUploadFile) (*ty
 		return nil, err
 	}
 	// Send from module to user
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, sdk.AccAddress(msg.Creator), coins); err != nil {
-		return nil, err
-	}
+        addr, err := sdk.AccAddressFromBech32(msg.Creator)
+        if err != nil {
+                return nil, err
+        }
+        if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins); err != nil {
+                return nil, err
+        }
 
 	return &types.MsgUploadFileResponse{Success: true}, nil
 }
