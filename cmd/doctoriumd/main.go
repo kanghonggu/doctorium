@@ -45,31 +45,32 @@ func main() {
                WithHomeDir(os.ExpandEnv("$HOME/" + app.DefaultNodeHome))
 
 	// 3) rootCmd 정의 (PersistentPreRunE에서 설정 생성)
-       rootCmd := &cobra.Command{
-               Use:   "doctoriumd",
-               Short: "Doctorium Network Daemon",
-               PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-                       cmd.SetOut(cmd.ErrOrStderr())
-                       clientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
-                       if err != nil {
-                               return err
-                       }
-                       if err := client.SetCmdClientContextHandler(clientCtx, cmd); err != nil {
-                               return err
-                       }
-                       tmCfg := cmtcfg.DefaultConfig()
-                       tmCfg.RootDir = clientCtx.HomeDir
-                       if err := sdkserver.InterceptConfigsPreRunHandler(
-                               cmd,
-                               "",                           // custom app.toml 템플릿 없으면 빈 문자열
-                               serverconfig.DefaultConfig(), // *serverconfig.Config (포인터)
-                               tmCfg,                        // *cmtcfg.Config      (포인터)
-                       ); err != nil {
-                               return err
-                       }
-                       return nil
-               },
-       }
+
+	rootCmd := &cobra.Command{
+		Use:   "doctoriumd",
+		Short: "Doctorium Network Daemon",
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			cmd.SetOut(cmd.ErrOrStderr())
+			clientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
+			if err != nil {
+				return err
+			}
+			if err := client.SetCmdClientContextHandler(clientCtx, cmd); err != nil {
+				return err
+			}
+			tmCfg := cmtcfg.DefaultConfig()
+			tmCfg.RootDir = clientCtx.HomeDir
+			if err := sdkserver.InterceptConfigsPreRunHandler(
+				cmd,
+				"",                           // custom app.toml 템플릿 없으면 빈 문자열
+				serverconfig.DefaultConfig(), // *serverconfig.Config (포인터)
+				tmCfg,                        // *cmtcfg.Config      (포인터)
+			); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
 
 	// 4) genesis 계열 서브커맨드 등록
 	balIter := banktypes.GenesisBalancesIterator{}
@@ -78,8 +79,8 @@ func main() {
 		//authcli.AddGenesisAccountCmd(app.DefaultNodeHome),
 		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		genutilcli.GenTxCmd(app.ModuleBasics, encCfg.TxConfig, balIter, app.DefaultNodeHome),
-                genutilcli.CollectGenTxsCmd(balIter, app.DefaultNodeHome, genutiltypes.DefaultMessageValidator),
-                genutilcli.ValidateGenesisCmd(app.ModuleBasics),
+		genutilcli.CollectGenTxsCmd(balIter, app.DefaultNodeHome, genutiltypes.DefaultMessageValidator),
+		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
 
 		genutilcli.AddGenesisAccountCmd(
 			app.DefaultNodeHome,
@@ -148,8 +149,10 @@ func main() {
                panic(err)
        }
 
+
        // 6) Execute: servercmd.Execute 로 Cobra+SDK wrapper 함께 실행
        if err := servercmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
                os.Exit(1)
        }
+
 }
