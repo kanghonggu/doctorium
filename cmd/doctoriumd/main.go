@@ -36,35 +36,40 @@ func main() {
 
 	// 2) client.Context 준비
 
-	initClientCtx := client.Context{}.
-		WithCodec(encCfg.Marshaler).
-		WithInterfaceRegistry(encCfg.InterfaceRegistry).
-		WithTxConfig(encCfg.TxConfig).
-		WithLegacyAmino(encCfg.Amino).
-		WithInput(os.Stdin).
-		WithHomeDir(os.ExpandEnv("$HOME/" + app.DefaultNodeHome))
+       initClientCtx := client.Context{}.
+               WithCodec(encCfg.Marshaler).
+               WithInterfaceRegistry(encCfg.InterfaceRegistry).
+               WithTxConfig(encCfg.TxConfig).
+               WithLegacyAmino(encCfg.Amino).
+               WithInput(os.Stdin).
+               WithHomeDir(os.ExpandEnv("$HOME/" + app.DefaultNodeHome))
 
 	// 3) rootCmd 정의 (PersistentPreRunE에서 설정 생성)
-	rootCmd := &cobra.Command{
-		Use:   "doctoriumd",
-		Short: "Doctorium Network Daemon",
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			// (A) server context + config 디렉터리/파일 생성
-			tmCfg := cmtcfg.DefaultConfig()
-			tmCfg.RootDir = initClientCtx.HomeDir
-			if err := sdkserver.InterceptConfigsPreRunHandler(
-				cmd,
-				"",                           // custom app.toml 템플릿 없으면 빈 문자열
-				serverconfig.DefaultConfig(), // *serverconfig.Config (포인터)
-				tmCfg,                        // *cmtcfg.Config      (포인터)
-			); err != nil {
-				return err
-			}
-			// (B) client.Context 주입
-			client.SetCmdClientContext(cmd, initClientCtx)
-			return nil
-		},
-	}
+       rootCmd := &cobra.Command{
+               Use:   "doctoriumd",
+               Short: "Doctorium Network Daemon",
+               PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+                       cmd.SetOut(cmd.Err())
+                       clientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
+                       if err != nil {
+                               return err
+                       }
+                       if err := client.SetCmdClientContextHandler(clientCtx, cmd); err != nil {
+                               return err
+                       }
+                       tmCfg := cmtcfg.DefaultConfig()
+                       tmCfg.RootDir = clientCtx.HomeDir
+                       if err := sdkserver.InterceptConfigsPreRunHandler(
+                               cmd,
+                               "",                           // custom app.toml 템플릿 없으면 빈 문자열
+                               serverconfig.DefaultConfig(), // *serverconfig.Config (포인터)
+                               tmCfg,                        // *cmtcfg.Config      (포인터)
+                       ); err != nil {
+                               return err
+                       }
+                       return nil
+               },
+       }
 
 	// 4) genesis 계열 서브커맨드 등록
 	balIter := banktypes.GenesisBalancesIterator{}
@@ -87,9 +92,9 @@ func main() {
 	)
 
 	// 5) tendermint init, start, unsafe-reset-all 등 노드 실행 커맨드 등록
-	sdkserver.AddCommands(
-		rootCmd,
-		app.DefaultNodeHome,
+       sdkserver.AddCommands(
+               rootCmd,
+               app.DefaultNodeHome,
 
 		// AppCreator
 		func(
@@ -136,11 +141,15 @@ func main() {
 		},
 
 		// no-op for module init flags
-		func(cmd *cobra.Command) {},
-	)
+               func(cmd *cobra.Command) {},
+       )
 
-	// 6) Execute: servercmd.Execute 로 Cobra+SDK wrapper 함께 실행
-	if err := servercmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
-		os.Exit(1)
-	}
+       if err := client.SetCmdClientContextHandler(initClientCtx, rootCmd); err != nil {
+               panic(err)
+       }
+
+       // 6) Execute: servercmd.Execute 로 Cobra+SDK wrapper 함께 실행
+       if err := servercmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
+               os.Exit(1)
+       }
 }
