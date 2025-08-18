@@ -33,4 +33,8 @@ VOLUME ["/root/.doctoriumd"]
 WORKDIR /root
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+
 CMD []
+
+EXPOSE 26656 26657 1317 9090

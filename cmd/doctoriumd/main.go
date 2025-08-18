@@ -35,10 +35,12 @@ func main() {
 	encCfg := app.MakeEncodingConfig()
 
 	// 2) client.Context 준비
+
 	initClientCtx := client.Context{}.
 		WithCodec(encCfg.Marshaler).
 		WithInterfaceRegistry(encCfg.InterfaceRegistry).
 		WithTxConfig(encCfg.TxConfig).
+		WithLegacyAmino(encCfg.Amino).
 		WithInput(os.Stdin).
 		WithHomeDir(os.ExpandEnv("$HOME/" + app.DefaultNodeHome))
 

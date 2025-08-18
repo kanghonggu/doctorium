@@ -22,6 +22,7 @@ func MakeEncodingConfig() EncodingConfig {
 
 	// Legacy Amino codec (필요시)
 	amino := codec.NewLegacyAmino()
+	ModuleBasics.RegisterLegacyAminoCodec(amino) // ★ 추가
 	ModuleBasics.RegisterInterfaces(interfaceRegistry)
 	// Protobuf codec
 	marshaler := codec.NewProtoCodec(interfaceRegistry)

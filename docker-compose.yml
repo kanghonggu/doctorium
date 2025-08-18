@@ -1,0 +1,32 @@
+# docker-compose.yml
+version: "3.9"
+
+services:
+  doctoriumd:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: doctoriumd:local
+    container_name: doctoriumd
+    # Apple Silicon(M1/M2)에서 amd64로 고정하고 싶으면 주석 해제
+    # platform: linux/amd64
+    environment:
+      - APP=doctoriumd
+      - CHAIN_ID=doctorium-test
+      - MONIKER=validator02
+      - KEY_NAME=validator02
+      - KEYRING=file                 # 개발 빠른 확인용: test
+      - KEYRING_PASSPHRASE=12345678  # KEYRING=file일 때만 사용
+      - HOME_DIR=/root/.doctoriumd
+      - DENOM=stake
+      - GENESIS_COINS=100000000000stake
+      - SELF_DELEGATE=100000000stake
+      - MIN_GAS_PRICE=0.025stake
+    volumes:
+      - ./data:/root/.doctoriumd     # 상태 영속
+    ports:
+      - "26656:26656"  # P2P
+      - "26657:26657"  # RPC
+      - "1317:1317"    # REST
+      - "9090:9090"    # gRPC
+    restart: unless-stopped
