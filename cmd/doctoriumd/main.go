@@ -36,15 +36,16 @@ func main() {
 
 	// 2) client.Context 준비
 
-	initClientCtx := client.Context{}.
-		WithCodec(encCfg.Marshaler).
-		WithInterfaceRegistry(encCfg.InterfaceRegistry).
-		WithTxConfig(encCfg.TxConfig).
-		WithLegacyAmino(encCfg.Amino).
-		WithInput(os.Stdin).
-		WithHomeDir(os.ExpandEnv("$HOME/" + app.DefaultNodeHome))
+       initClientCtx := client.Context{}.
+               WithCodec(encCfg.Marshaler).
+               WithInterfaceRegistry(encCfg.InterfaceRegistry).
+               WithTxConfig(encCfg.TxConfig).
+               WithLegacyAmino(encCfg.Amino).
+               WithInput(os.Stdin).
+               WithHomeDir(os.ExpandEnv("$HOME/" + app.DefaultNodeHome))
 
 	// 3) rootCmd 정의 (PersistentPreRunE에서 설정 생성)
+
 	rootCmd := &cobra.Command{
 		Use:   "doctoriumd",
 		Short: "Doctorium Network Daemon",
@@ -92,9 +93,9 @@ func main() {
 	)
 
 	// 5) tendermint init, start, unsafe-reset-all 등 노드 실행 커맨드 등록
-	sdkserver.AddCommands(
-		rootCmd,
-		app.DefaultNodeHome,
+       sdkserver.AddCommands(
+               rootCmd,
+               app.DefaultNodeHome,
 
 		// AppCreator
 		func(
@@ -141,15 +142,17 @@ func main() {
 		},
 
 		// no-op for module init flags
-		func(cmd *cobra.Command) {},
-	)
+               func(cmd *cobra.Command) {},
+       )
 
-	if err := client.SetCmdClientContextHandler(initClientCtx, rootCmd); err != nil {
-		panic(err)
-	}
+       if err := client.SetCmdClientContextHandler(initClientCtx, rootCmd); err != nil {
+               panic(err)
+       }
 
-	// 6) Execute: servercmd.Execute 로 Cobra+SDK wrapper 함께 실행
-	if err := servercmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
-		os.Exit(1)
-	}
+
+       // 6) Execute: servercmd.Execute 로 Cobra+SDK wrapper 함께 실행
+       if err := servercmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
+               os.Exit(1)
+       }
+
 }
