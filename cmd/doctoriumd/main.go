@@ -2,6 +2,7 @@
 package main
 
 import (
+        "context"
         "encoding/json"
         "io"
         "os"
@@ -72,9 +73,9 @@ func main() {
                        return nil
                },
        }
+       rootCmd.SetContext(context.Background())
 
-
-	// 4) genesis 계열 서브커맨드 등록
+       // 4) genesis 계열 서브커맨드 등록
 	balIter := banktypes.GenesisBalancesIterator{}
 	rootCmd.AddCommand(
 
@@ -146,12 +147,6 @@ func main() {
 		// no-op for module init flags
                func(cmd *cobra.Command) {},
        )
-
-       if err := client.SetCmdClientContextHandler(initClientCtx, rootCmd); err != nil {
-               panic(err)
-       }
-
-
        // 6) Execute: servercmd.Execute 로 Cobra+SDK wrapper 함께 실행
        if err := servercmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
                os.Exit(1)
