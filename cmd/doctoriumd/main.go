@@ -2,33 +2,31 @@
 package main
 
 import (
-        "encoding/json"
-        "io"
-        "os"
+	"encoding/json"
+	"io"
+	"os"
 
-        "github.com/spf13/cobra"
-        "github.com/spf13/viper"
+	"github.com/spf13/cobra"
+	// Cosmos SDK
+	"github.com/cosmos/cosmos-sdk/client"
+	sdkserver "github.com/cosmos/cosmos-sdk/server"     // ← 반드시 여기
+	servercmd "github.com/cosmos/cosmos-sdk/server/cmd" // Execute 용
+	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
+	"github.com/cosmos/cosmos-sdk/server/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
+	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 
-        // Cosmos SDK
-        "github.com/cosmos/cosmos-sdk/client"
-        sdkserver "github.com/cosmos/cosmos-sdk/server"     // ← 반드시 여기
-        servercmd "github.com/cosmos/cosmos-sdk/server/cmd" // Execute 용
-        serverconfig "github.com/cosmos/cosmos-sdk/server/config"
-        "github.com/cosmos/cosmos-sdk/server/types"
-        banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-        genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
-        genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	// CometBFT
+	tmdb "github.com/cometbft/cometbft-db"
+	cmtcfg "github.com/cometbft/cometbft/config"
+	tmLog "github.com/cometbft/cometbft/libs/log"
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	tmtypes "github.com/cometbft/cometbft/types"
 
-        // CometBFT
-        tmdb "github.com/cometbft/cometbft-db"
-        cmtcfg "github.com/cometbft/cometbft/config"
-        tmLog "github.com/cometbft/cometbft/libs/log"
-        tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
-        tmtypes "github.com/cometbft/cometbft/types"
-
-        keyscli "github.com/cosmos/cosmos-sdk/client/keys"
-        // your app
-        "doctorium/app"
+	keyscli "github.com/cosmos/cosmos-sdk/client/keys"
+	// your app
+	"doctorium/app"
 )
 
 func main() {
@@ -37,42 +35,41 @@ func main() {
 
 	// 2) client.Context 준비
 
-       initClientCtx := client.Context{}.
-               WithCodec(encCfg.Marshaler).
-               WithInterfaceRegistry(encCfg.InterfaceRegistry).
-               WithTxConfig(encCfg.TxConfig).
-               WithLegacyAmino(encCfg.Amino).
-               WithInput(os.Stdin).
-               WithHomeDir(os.ExpandEnv("$HOME/" + app.DefaultNodeHome)).
-               WithViper(viper.GetViper())
+	initClientCtx := client.Context{}.
+		WithCodec(encCfg.Marshaler).
+		WithInterfaceRegistry(encCfg.InterfaceRegistry).
+		WithTxConfig(encCfg.TxConfig).
+		WithLegacyAmino(encCfg.Amino).
+		WithInput(os.Stdin).
+		WithHomeDir(os.ExpandEnv("$HOME/" + app.DefaultNodeHome)).
+		WithViper("DOCTORIUM")
 
 	// 3) rootCmd 정의 (PersistentPreRunE에서 설정 생성)
-       rootCmd := &cobra.Command{
-               Use:   "doctoriumd",
-               Short: "Doctorium Network Daemon",
-               PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-                       cmd.SetOut(cmd.ErrOrStderr())
-                       clientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
-                       if err != nil {
-                               return err
-                       }
-                      if err := client.SetCmdClientContext(cmd, clientCtx); err != nil {
-                               return err
-                       }
-                       tmCfg := cmtcfg.DefaultConfig()
-                       tmCfg.RootDir = clientCtx.HomeDir
-                       if err := sdkserver.InterceptConfigsPreRunHandler(
-                               cmd,
-                               "",                           // custom app.toml 템플릿 없으면 빈 문자열
-                               serverconfig.DefaultConfig(), // *serverconfig.Config (포인터)
-                               tmCfg,                        // *cmtcfg.Config      (포인터)
-                       ); err != nil {
-                               return err
-                       }
-                       return nil
-               },
-       }
-
+	rootCmd := &cobra.Command{
+		Use:   "doctoriumd",
+		Short: "Doctorium Network Daemon",
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			cmd.SetOut(cmd.ErrOrStderr())
+			clientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
+			if err != nil {
+				return err
+			}
+			if err := client.SetCmdClientContext(cmd, clientCtx); err != nil {
+				return err
+			}
+			tmCfg := cmtcfg.DefaultConfig()
+			tmCfg.RootDir = clientCtx.HomeDir
+			if err := sdkserver.InterceptConfigsPreRunHandler(
+				cmd,
+				"",                           // custom app.toml 템플릿 없으면 빈 문자열
+				serverconfig.DefaultConfig(), // *serverconfig.Config (포인터)
+				tmCfg,                        // *cmtcfg.Config      (포인터)
+			); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
 
 	// 4) genesis 계열 서브커맨드 등록
 	balIter := banktypes.GenesisBalancesIterator{}
@@ -95,9 +92,9 @@ func main() {
 	)
 
 	// 5) tendermint init, start, unsafe-reset-all 등 노드 실행 커맨드 등록
-       sdkserver.AddCommands(
-               rootCmd,
-               app.DefaultNodeHome,
+	sdkserver.AddCommands(
+		rootCmd,
+		app.DefaultNodeHome,
 
 		// AppCreator
 		func(
@@ -144,17 +141,16 @@ func main() {
 		},
 
 		// no-op for module init flags
-               func(cmd *cobra.Command) {},
-       )
+		func(cmd *cobra.Command) {},
+	)
 
-       if err := client.SetCmdClientContextHandler(initClientCtx, rootCmd); err != nil {
-               panic(err)
-       }
+	if err := client.SetCmdClientContextHandler(initClientCtx, rootCmd); err != nil {
+		panic(err)
+	}
 
-
-       // 6) Execute: servercmd.Execute 로 Cobra+SDK wrapper 함께 실행
-       if err := servercmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
-               os.Exit(1)
-       }
+	// 6) Execute: servercmd.Execute 로 Cobra+SDK wrapper 함께 실행
+	if err := servercmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
+		os.Exit(1)
+	}
 
 }
