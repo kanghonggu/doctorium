@@ -38,16 +38,17 @@ func main() {
 
 	// 2) client.Context 준비
 
-       initClientCtx := client.Context{}.
-               WithCodec(encCfg.Marshaler).
-               WithInterfaceRegistry(encCfg.InterfaceRegistry).
-               WithTxConfig(encCfg.TxConfig).
-               WithLegacyAmino(encCfg.Amino).
-               WithInput(os.Stdin).
-               WithHomeDir(os.ExpandEnv("$HOME/" + app.DefaultNodeHome)).
-               WithViper(viper.GetViper())
+	initClientCtx := client.Context{}.
+		WithCodec(encCfg.Marshaler).
+		WithInterfaceRegistry(encCfg.InterfaceRegistry).
+		WithTxConfig(encCfg.TxConfig).
+		WithLegacyAmino(encCfg.Amino).
+		WithInput(os.Stdin).
+		WithHomeDir(os.ExpandEnv("$HOME/" + app.DefaultNodeHome)).
+		WithViper("DOCTORIUM")
 
 	// 3) rootCmd 정의 (PersistentPreRunE에서 설정 생성)
+
        rootCmd := &cobra.Command{
                Use:   "doctoriumd",
                Short: "Doctorium Network Daemon",
@@ -76,6 +77,7 @@ func main() {
        rootCmd.SetContext(context.Background())
 
        // 4) genesis 계열 서브커맨드 등록
+
 	balIter := banktypes.GenesisBalancesIterator{}
 	rootCmd.AddCommand(
 
@@ -96,9 +98,9 @@ func main() {
 	)
 
 	// 5) tendermint init, start, unsafe-reset-all 등 노드 실행 커맨드 등록
-       sdkserver.AddCommands(
-               rootCmd,
-               app.DefaultNodeHome,
+	sdkserver.AddCommands(
+		rootCmd,
+		app.DefaultNodeHome,
 
 		// AppCreator
 		func(
@@ -145,11 +147,13 @@ func main() {
 		},
 
 		// no-op for module init flags
+
                func(cmd *cobra.Command) {},
        )
        // 6) Execute: servercmd.Execute 로 Cobra+SDK wrapper 함께 실행
        if err := servercmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
                os.Exit(1)
        }
+
 
 }
