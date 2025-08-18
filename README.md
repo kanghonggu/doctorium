@@ -22,3 +22,6 @@ PUBKEY=$(./build/doctoriumd keys show validator01 --keyring-backend file --home 
 --keyring-backend file \
 --home ~/.doctoriumd \
 --pubkey "$PUBKEY"
+
+# Troubleshooting
+* [Handling `validate-genesis` panics in manual setups](docs/validate-genesis-troubleshooting.md)
