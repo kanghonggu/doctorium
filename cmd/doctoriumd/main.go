@@ -73,6 +73,7 @@ func main() {
                },
        }
 
+
 	// 4) genesis 계열 서브커맨드 등록
 	balIter := banktypes.GenesisBalancesIterator{}
 	rootCmd.AddCommand(
@@ -80,8 +81,8 @@ func main() {
 		//authcli.AddGenesisAccountCmd(app.DefaultNodeHome),
 		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		genutilcli.GenTxCmd(app.ModuleBasics, encCfg.TxConfig, balIter, app.DefaultNodeHome),
-                genutilcli.CollectGenTxsCmd(balIter, app.DefaultNodeHome, genutiltypes.DefaultMessageValidator),
-                genutilcli.ValidateGenesisCmd(app.ModuleBasics),
+		genutilcli.CollectGenTxsCmd(balIter, app.DefaultNodeHome, genutiltypes.DefaultMessageValidator),
+		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
 
 		genutilcli.AddGenesisAccountCmd(
 			app.DefaultNodeHome,
@@ -150,8 +151,10 @@ func main() {
                panic(err)
        }
 
+
        // 6) Execute: servercmd.Execute 로 Cobra+SDK wrapper 함께 실행
        if err := servercmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
                os.Exit(1)
        }
+
 }

@@ -15,6 +15,7 @@ import (
 // - Amino: legacy Amino codec
 // - TxConfig: transaction config (sign modes)
 func MakeEncodingConfig() EncodingConfig {
+
 	interfaceRegistry := codectypes.NewInterfaceRegistry()
 
 	authtypes.RegisterInterfaces(interfaceRegistry)
