@@ -68,23 +68,23 @@ func main() {
 
 	// 4) genesis 계열 서브커맨드 등록
 	balIter := banktypes.GenesisBalancesIterator{}
-       rootCmd.AddCommand(
+	rootCmd.AddCommand(
 
-                //authcli.AddGenesisAccountCmd(app.DefaultNodeHome),
-                genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
+		//authcli.AddGenesisAccountCmd(app.DefaultNodeHome),
+		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		genutilcli.GenTxCmd(app.ModuleBasics, encCfg.TxConfig, balIter, app.DefaultNodeHome),
-                genutilcli.CollectGenTxsCmd(balIter, app.DefaultNodeHome, genutiltypes.DefaultMessageValidator),
-                genutilcli.ValidateGenesisCmd(app.ModuleBasics, genutiltypes.DefaultMessageValidator),
+		genutilcli.CollectGenTxsCmd(balIter, app.DefaultNodeHome, genutiltypes.DefaultMessageValidator),
+		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
 
 		genutilcli.AddGenesisAccountCmd(
 			app.DefaultNodeHome,
 		),
 	)
 
-       rootCmd.AddCommand(
-                keyscli.Commands(app.DefaultNodeHome),
-               newFixKeyringCmd(),
-       )
+	rootCmd.AddCommand(
+		keyscli.Commands(app.DefaultNodeHome),
+		newFixKeyringCmd(),
+	)
 
 	// 5) tendermint init, start, unsafe-reset-all 등 노드 실행 커맨드 등록
 	sdkserver.AddCommands(
