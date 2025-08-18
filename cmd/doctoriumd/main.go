@@ -73,8 +73,8 @@ func main() {
                 //authcli.AddGenesisAccountCmd(app.DefaultNodeHome),
                 genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		genutilcli.GenTxCmd(app.ModuleBasics, encCfg.TxConfig, balIter, app.DefaultNodeHome),
-		genutilcli.CollectGenTxsCmd(balIter, app.DefaultNodeHome, genutiltypes.DefaultMessageValidator),
-		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
+                genutilcli.CollectGenTxsCmd(balIter, app.DefaultNodeHome, genutiltypes.DefaultMessageValidator),
+                genutilcli.ValidateGenesisCmd(app.ModuleBasics, genutiltypes.DefaultMessageValidator),
 
 		genutilcli.AddGenesisAccountCmd(
 			app.DefaultNodeHome,
