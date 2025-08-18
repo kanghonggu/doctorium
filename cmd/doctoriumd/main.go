@@ -49,7 +49,7 @@ func main() {
 		Use:   "doctoriumd",
 		Short: "Doctorium Network Daemon",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			cmd.SetOut(cmd.Err())
+			cmd.SetOut(cmd.ErrOrStderr())
 			clientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
 			if err != nil {
 				return err
