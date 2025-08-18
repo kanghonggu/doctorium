@@ -51,8 +51,14 @@ func main() {
 	rootCmd := &cobra.Command{
 		Use:   "doctoriumd",
 		Short: "Doctorium Network Daemon",
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			cmd.SetOut(cmd.ErrOrStderr())
+                PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+                        // CLI outputs should go to stdout so that scripts can
+                        // capture command results.  Using stderr here caused
+                        // commands like `keys show -a` to print the address on
+                        // stderr, which broke automated tooling expecting the
+                        // value on stdout.  Restore the standard behaviour by
+                        // directing Cobra's output to stdout.
+                        cmd.SetOut(cmd.OutOrStdout())
 			clientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
 			if err != nil {
 				return err
