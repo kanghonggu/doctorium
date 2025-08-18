@@ -60,11 +60,13 @@ func main() {
 			); err != nil {
 				return err
 			}
-			// (B) client.Context 주입
-			client.SetCmdClientContext(cmd, initClientCtx)
-			return nil
-		},
-	}
+                        // (B) client.Context 주입
+                        if err := client.SetCmdClientContextHandler(initClientCtx, cmd); err != nil {
+                                return err
+                        }
+                        return nil
+                },
+        }
 
 	// 4) genesis 계열 서브커맨드 등록
 	balIter := banktypes.GenesisBalancesIterator{}
