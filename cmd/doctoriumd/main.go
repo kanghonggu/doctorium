@@ -7,13 +7,12 @@ import (
 	"io"
 	"os"
 
-        "github.com/spf13/cobra"
+	"github.com/spf13/cobra"
 
-        // Cosmos SDK
-        "github.com/cosmos/cosmos-sdk/client"
-        tx "github.com/cosmos/cosmos-sdk/client/tx"
-        sdkserver "github.com/cosmos/cosmos-sdk/server"     // ← 반드시 여기
-        servercmd "github.com/cosmos/cosmos-sdk/server/cmd" // Execute 용
+	// Cosmos SDK
+	"github.com/cosmos/cosmos-sdk/client"
+	sdkserver "github.com/cosmos/cosmos-sdk/server"     // ← 반드시 여기
+	servercmd "github.com/cosmos/cosmos-sdk/server/cmd" // Execute 용
 	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/cosmos/cosmos-sdk/server/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -98,19 +97,15 @@ func main() {
 		),
 	)
 
-        rootCmd.AddCommand(
-                keyscli.Commands(app.DefaultNodeHome),
-                newFixKeyringCmd(),
-        )
+	rootCmd.AddCommand(
+		keyscli.Commands(app.DefaultNodeHome),
+		newFixKeyringCmd(),
+	)
 
-        rootCmd.AddCommand(
-                tx.NewTxCmd(),
-        )
-
-        // 5) tendermint init, start, unsafe-reset-all 등 노드 실행 커맨드 등록
-        sdkserver.AddCommands(
-                rootCmd,
-                app.DefaultNodeHome,
+	// 5) tendermint init, start, unsafe-reset-all 등 노드 실행 커맨드 등록
+	sdkserver.AddCommands(
+		rootCmd,
+		app.DefaultNodeHome,
 
 		// AppCreator
 		func(
