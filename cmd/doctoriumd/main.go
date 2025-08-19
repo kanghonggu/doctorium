@@ -84,6 +84,16 @@ func main() {
 	// 4) genesis 계열 서브커맨드 등록
 
 	balIter := banktypes.GenesisBalancesIterator{}
+	valCmd := genutilcli.ValidateGenesisCmd(app.ModuleBasics)
+	valCmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
+		// initClientCtx는 main() 상단에서 만든 그 값 (WithTxConfig / WithViper 등 세팅된 상태여야 함)
+		clientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
+		if err != nil {
+			return err
+		}
+		return client.SetCmdClientContextHandler(clientCtx, cmd)
+	}
+
 	rootCmd.AddCommand(
 
 		//authcli.AddGenesisAccountCmd(app.DefaultNodeHome),
@@ -91,7 +101,7 @@ func main() {
 		genutilcli.GenTxCmd(app.ModuleBasics, encCfg.TxConfig, balIter, app.DefaultNodeHome),
 		genutilcli.CollectGenTxsCmd(balIter, app.DefaultNodeHome, genutiltypes.DefaultMessageValidator),
 		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
-
+		valCmd,
 		genutilcli.AddGenesisAccountCmd(
 			app.DefaultNodeHome,
 		),
