@@ -228,17 +228,17 @@ log "Collecting gentxs…"
 # Validate each GenTx to avoid nil-pointer panics during validate-genesis
 if jq -e '.app_state.genutil.gen_txs? | length > 0' "$HOME_DIR/config/genesis.json" >/dev/null; then
   log "Checking GenTxs…"
-  tmpdir=$(mktemp -d)
-  mapfile -t gentxs < <(jq -c '.app_state.genutil.gen_txs[]' "$HOME_DIR/config/genesis.json")
+  mapfile -t gentxs < <(jq -r '.app_state.genutil.gen_txs[]' "$HOME_DIR/config/genesis.json")
   for i in "${!gentxs[@]}"; do
-    echo "${gentxs[$i]}" > "$tmpdir/$i.json"
-    if ! "$APP" tx decode "$tmpdir/$i.json" --home "$HOME_DIR" >/dev/null 2>&1; then
-      log "Invalid GenTx found at index $((i+1)); aborting."
-      rm -rf "$tmpdir"
+    if ! echo "${gentxs[$i]}" | base64 -d >/dev/null 2>&1; then
+      log "GenTx at index $((i+1)) is not valid base64; aborting."
+      exit 1
+    fi
+    if ! echo "${gentxs[$i]}" | "$APP" debug raw-bytes --type sdk.Tx >/dev/null 2>&1; then
+      log "GenTx at index $((i+1)) failed to decode; aborting."
       exit 1
     fi
   done
-  rm -rf "$tmpdir"
 fi
 
 # 4) REST/gRPC/RPC 설정
