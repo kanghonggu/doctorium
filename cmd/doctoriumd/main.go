@@ -1,159 +1,149 @@
-// cmd/doctoriumd/main.go
 package main
 
 import (
 	"context"
 	"encoding/json"
-	"io"
-	"os"
-
-	"github.com/spf13/cobra"
-
-	// Cosmos SDK
-	"github.com/cosmos/cosmos-sdk/client"
-	sdkserver "github.com/cosmos/cosmos-sdk/server"     // ← 반드시 여기
-	servercmd "github.com/cosmos/cosmos-sdk/server/cmd" // Execute 용
-	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
-	"github.com/cosmos/cosmos-sdk/server/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	"github.com/spf13/cobra"
+	"io"
+	"os"
+
+	// Cosmos SDK
+	"github.com/cosmos/cosmos-sdk/client"
+	sdkserver "github.com/cosmos/cosmos-sdk/server"
+	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
+	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
+	servertypes "github.com/cosmos/cosmos-sdk/server/types"
+
+	keyscli "github.com/cosmos/cosmos-sdk/client/keys"
 
 	// CometBFT
 	tmdb "github.com/cometbft/cometbft-db"
 	cmtcfg "github.com/cometbft/cometbft/config"
-	tmLog "github.com/cometbft/cometbft/libs/log"
+	tmlog "github.com/cometbft/cometbft/libs/log"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	tmtypes "github.com/cometbft/cometbft/types"
 
-	keyscli "github.com/cosmos/cosmos-sdk/client/keys"
-	// your app
+	// Your app
 	"doctorium/app"
 )
 
 func main() {
-	// 1) 한 번만 생성할 인코딩 설정
-	encCfg := app.MakeEncodingConfig()
+	// 1) Encoding (TxConfig 포함)
+	enc := app.MakeEncodingConfig()
 
-	// 2) client.Context 준비
-
+	// 2) 기본 client.Context (너희 포크는 WithViper(prefix string))
 	initClientCtx := client.Context{}.
-		WithCodec(encCfg.Marshaler).
-		WithInterfaceRegistry(encCfg.InterfaceRegistry).
-		WithTxConfig(encCfg.TxConfig).
-		WithLegacyAmino(encCfg.Amino).
+		WithCodec(enc.Marshaler).
+		WithInterfaceRegistry(enc.InterfaceRegistry).
+		WithTxConfig(enc.TxConfig).
+		WithLegacyAmino(enc.Amino).
 		WithInput(os.Stdin).
-		WithHomeDir(os.ExpandEnv("$HOME/" + app.DefaultNodeHome)).
+		WithHomeDir(app.DefaultNodeHome).
 		WithViper("DOCTORIUM")
 
-	// 3) rootCmd 정의 (PersistentPreRunE에서 설정 생성)
-
+	// rootCmd := &cobra.Command{ ... }
 	rootCmd := &cobra.Command{
 		Use:   "doctoriumd",
 		Short: "Doctorium Network Daemon",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			// CLI outputs should go to stdout so that scripts can
-			// capture command results.  Using stderr here caused
-			// commands like `keys show -a` to print the address on
-			// stderr, which broke automated tooling expecting the
-			// value on stdout.  Restore the standard behaviour by
-			// directing Cobra's output to stdout.
 			cmd.SetOut(cmd.OutOrStdout())
+
 			clientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
 			if err != nil {
 				return err
 			}
+			// 순서: setter 먼저 → handler
 			if err := client.SetCmdClientContext(cmd, clientCtx); err != nil {
 				return err
 			}
-			tmCfg := cmtcfg.DefaultConfig()
-			tmCfg.RootDir = clientCtx.HomeDir
-			if err := sdkserver.InterceptConfigsPreRunHandler(
-				cmd,
-				"",                           // custom app.toml 템플릿 없으면 빈 문자열
-				serverconfig.DefaultConfig(), // *serverconfig.Config (포인터)
-				tmCfg,                        // *cmtcfg.Config      (포인터)
-			); err != nil {
+			if err := client.SetCmdClientContextHandler(clientCtx, cmd); err != nil {
 				return err
 			}
-			return nil
+			// 그 다음에 InterceptConfigsPreRunHandler
+			tmCfg := cmtcfg.DefaultConfig()
+			tmCfg.RootDir = clientCtx.HomeDir
+			return sdkserver.InterceptConfigsPreRunHandler(cmd, "", serverconfig.DefaultConfig(), tmCfg)
 		},
 	}
 	rootCmd.SetContext(context.Background())
 
-	// 4) genesis 계열 서브커맨드 등록
-
+	// ValidateGenesis (커스텀 하나만 등록)
 	balIter := banktypes.GenesisBalancesIterator{}
+
 	valCmd := genutilcli.ValidateGenesisCmd(app.ModuleBasics)
 	valCmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
-		// initClientCtx는 main() 상단에서 만든 그 값 (WithTxConfig / WithViper 등 세팅된 상태여야 함)
 		clientCtx, err := client.ReadPersistentCommandFlags(initClientCtx, cmd.Flags())
 		if err != nil {
 			return err
 		}
-		return client.SetCmdClientContextHandler(clientCtx, cmd)
+		// ★ 여기서도 둘 다 호출
+		if err := client.SetCmdClientContextHandler(clientCtx, cmd); err != nil {
+			return err
+		}
+		if err := client.SetCmdClientContext(cmd, clientCtx); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	rootCmd.AddCommand(
-
-		//authcli.AddGenesisAccountCmd(app.DefaultNodeHome),
 		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
-		genutilcli.GenTxCmd(app.ModuleBasics, encCfg.TxConfig, balIter, app.DefaultNodeHome),
+		genutilcli.GenTxCmd(app.ModuleBasics, enc.TxConfig, balIter, app.DefaultNodeHome),
 		genutilcli.CollectGenTxsCmd(balIter, app.DefaultNodeHome, genutiltypes.DefaultMessageValidator),
-		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
-		valCmd,
-		genutilcli.AddGenesisAccountCmd(
-			app.DefaultNodeHome,
-		),
+		valCmd, // ← 이것만
+		genutilcli.AddGenesisAccountCmd(app.DefaultNodeHome),
 	)
 
+	// 5) 키/유틸
 	rootCmd.AddCommand(
 		keyscli.Commands(app.DefaultNodeHome),
-		newFixKeyringCmd(),
+		newFixKeyringCmd(), // 별도 파일의 복구 커맨드(중복 정의 금지)
 	)
 
-	// 5) tendermint init, start, unsafe-reset-all 등 노드 실행 커맨드 등록
+	// 6) Tendermint run/export 커맨드
 	sdkserver.AddCommands(
 		rootCmd,
 		app.DefaultNodeHome,
 
 		// AppCreator
 		func(
-			logger tmLog.Logger,
+			logger tmlog.Logger,
 			db tmdb.DB,
-			traceStore io.Writer,
-			opts types.AppOptions,
-		) types.Application {
+			trace io.Writer,
+			opts servertypes.AppOptions,
+		) servertypes.Application {
 			if logger == nil {
-				logger = tmLog.NewNopLogger()
+				logger = tmlog.NewNopLogger()
 			}
 			if db == nil {
 				db = tmdb.NewMemDB()
 			}
-
-			return app.NewDoctoriumApp(logger, db, traceStore, true, opts)
+			return app.NewDoctoriumApp(logger, db, trace, true, opts)
 		},
 
-		// AppExporter: 직접 ExportGenesis → JSON 직렬화
+		// AppExporter
 		func(
-			logger tmLog.Logger,
+			logger tmlog.Logger,
 			db tmdb.DB,
-			traceStore io.Writer,
+			trace io.Writer,
 			height int64,
 			forZeroHeight bool,
 			_ []string,
-			opts types.AppOptions,
+			opts servertypes.AppOptions,
 			_ []string,
-		) (types.ExportedApp, error) {
-			// loadLatest=false
-			rawApp := app.NewDoctoriumApp(logger, db, traceStore, false, opts).(*app.App)
-			ctx := rawApp.BaseApp.NewContext(forZeroHeight, tmproto.Header{Height: height})
-			state := rawApp.ModuleManager.ExportGenesis(ctx, encCfg.Marshaler)
+		) (servertypes.ExportedApp, error) {
+			raw := app.NewDoctoriumApp(logger, db, trace, false, opts).(*app.App)
+			ctx := raw.BaseApp.NewContext(forZeroHeight, tmproto.Header{Height: height})
+			state := raw.ModuleManager.ExportGenesis(ctx, enc.Marshaler)
+
 			bz, err := json.MarshalIndent(state, "", "  ")
 			if err != nil {
-				return types.ExportedApp{}, err
+				return servertypes.ExportedApp{}, err
 			}
-			return types.ExportedApp{
+			return servertypes.ExportedApp{
 				AppState:        bz,
 				Validators:      []tmtypes.GenesisValidator{},
 				Height:          height,
@@ -161,13 +151,12 @@ func main() {
 			}, nil
 		},
 
-		// no-op for module init flags
-
+		// addModuleInitFlags (필요 없으면 no-op)
 		func(cmd *cobra.Command) {},
 	)
-	// 6) Execute: servercmd.Execute 로 Cobra+SDK wrapper 함께 실행
-	if err := servercmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
+
+	// 7) 실행
+	if err := svrcmd.Execute(rootCmd, "DOCTORIUM", app.DefaultNodeHome); err != nil {
 		os.Exit(1)
 	}
-
 }
